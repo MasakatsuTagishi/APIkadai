@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="css/api.css">
+    <title>API app</title>
+    <style>
+    html,
+    body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+    }
+
+    #map {
+      height: calc(100% - 102px);
+      margin: 0;
+      padding: 0;
+    }
+    </style>
+</head>
+
+<body>
+
+    <h1>本の検索</h1>
+ 
+    
+        <input id="search-input" type="text">
+        <button id="btn">検索</button>
+        <div id="output"></div>
+
+        <button id="btn_2">表示</button>
+        <div id="map"></div>
+
+        <div id="weather"></div>
+    
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <script src='https://www.bing.com/api/maps/mapcontrol?key=Alq5ir-9BbcY94RXMg-zCgN4xSKJMDHOTgC98jAirHw8tT8pNJxh1EMEuVEdfqSx' async defer></script>
+    <!-- 天気API -->
+    <script src='http://api.openweathermap.org/data/2.5/weather?id=524901&appid=4f44f3c1f164d486e481f4f9d6484a5e' async defer></script>
+
+    <!-- axiosライブラリの読み込み -->
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+
+    <script>
+
+        // リクエストを送るurl
+        let url = 'https://www.googleapis.com/books/v1/volumes';
+        
+        // ボタンクリック時にデータを取得
+        $('#btn').on('click',function() {
+            axios.get('https://www.googleapis.com/books/v1/volumes?q=intitle:'+ $('#search-input').val())
+                .then(function(response){
+                    console.log(response.data.items);
+                     // 画面にタイトルを表示
+                    const data = [];
+                    response.data.items.forEach(function(x){
+                        // タイトル表示
+                        // data.push(`<p>${x.volumeInfo.title}</p>`);
+                        // 画像とリンクを表示
+                        console.log(x.volumeInfo.imageLinks);
+                        data.push(` <div class="content">
+                                    <p>${x.volumeInfo.title}</p>
+                                    <a href="${x.volumeInfo.previewLink}" target="_blank"><img src="${x.volumeInfo.imageLinks.thumbnail}"</a>
+                                    </div>
+                                `)
+                    });
+                    $('#output').html(data);      
+                })
+                .catch()
+                .finally();
+        });
+ 
+            // map表示用に使用する変数
+            let map;
+
+            const option = {
+                enableHighAccuracy: true,
+                maximumAge: 20000,
+                timeout: 1000000,
+            };
+
+            function pushPin(lat, lng, map) {
+                const location = new Microsoft.Maps.Location(lat, lng)
+                const pin = new Microsoft.Maps.Pushpin(location, {
+                    color: 'navy', // 色の設定
+                    visible: true, // これ書かないとピンが見えない
+                });
+                map.entities.push(pin);
+            };
+
+            function generateInfobox(lat, lng, map) {
+                const location = new Microsoft.Maps.Location(lat, lng)
+                const infobox = new Microsoft.Maps.Infobox(location, {
+                    title: 'イマココ',
+                    description: "I'm here!!!"
+                });
+                infobox.setMap(map);
+            };
+  
+            // 現在地の取得に成功したときの関数
+            function mapsInit(position) {
+                console.log(position);
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+                map = new Microsoft.Maps.Map('#map', {
+                    center: {
+                    latitude: lat, longitude: lng
+                    },
+                    zoom: 15,
+                });
+                pushPin(lat, lng, map);
+                generateInfobox(lat, lng, map);
+            }
+
+            // 現在位置の取得に失敗したの実行する関数
+            function showError(error) {
+                let e = '';
+                if (error.code == 1) {
+                    e = '位置情報が許可されてません'; 
+                } else if (error.code == 2) {
+                    e = '現在位置を特定できません'; 
+                } else if (error.code == 3) {
+                    e = '位置情報を取得する前にタイムアウトになりました'; 
+                }
+                alert('error:' + e); 
+            }
+
+            // 位置情報を取りにいく処理
+            window.onload = $('#btn_2').on('click',function() {
+            navigator.geolocation.getCurrentPosition(mapsInit, showError, option);
+            });
+
+            const Thunderstorm = '<img src="img/thunderstorm_rain.png">';
+            const Drizzle = '<img src="img/drizzle.png">';
+            const Rain= '<img src="img/rain.png">';
+            const Snow= '<img src="img/snow.png">';
+            const Atmosphere= '<img src="img/drizzle.png">';
+            const Clear= '<img src="img/sunny.png">';
+            const Clouds= '<img src="img/cloud.png">';
+
+            const tenki=[Thunderstorm,Drizzle,Rain,Snow,Atmosphere,Clear,Clouds];
+
+            // 位置情報が取得成功した時
+            navigator.geolocation.getCurrentPosition(function (position) {
+                // 緯度経度を取得
+                const basePosition = position.coords;
+                const lat = basePosition.latitude;
+                const lng = basePosition.longitude;
+                // openweatherから天気情報を取得
+                axios.get('http://api.openweathermap.org/data/2.5/weather' + '?lat=' + lat + '&lon=' + lng +'&id=524901&appid=4f44f3c1f164d486e481f4f9d6484a5e')
+                    .then(function(response){
+                        console.log(response);
+                        // 画面にタイトルを表示
+                        const data = [];
+                        const weatherdata = response.data.weather.main;
+                        response.data.weather.forEach(function(x){
+                            console.log(weather);
+                            data.push(`<p>${x.main}</p>`);                       
+                        });
+                        console.log(data);
+                        // pushしたテキストを画像に置き換える
+                        if( data == "<p>Rain</p>" ) {
+                             $('#weather').html(tenki[2]);
+                        } else if( data == "<p>Clouds</p>" ) {
+                             $('#weather').html(tenki[6]);
+                        } else if( data == "<p>Thunderstorm</p>" ) {
+                             $('#weather').html(tenki[0]);
+                        } else if( data == "<p>Drizzle</p>" ) {
+                             $('#weather').html(tenki[1]);
+                        } else if( data == "<p>Snow</p>" ) {
+                             $('#weather').html(tenki[3]);
+                        } else if( data == "<p>Atmosphere</p>" ) {
+                             $('#weather').html(tenki[4]);
+                        } else if( data == "<p>Clear</p>" ) {
+                             $('#weather').html(tenki[5]);
+                        };
+                        // $('#weather').html(data);                                 
+                    })
+                    .catch()
+                    .finally();
+            });
+
+    </script>
+
+</body>
+</html>
